@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokit - 타이머</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="container">
+    <button class="logout-btn" onclick="logout()">로그아웃</button>
+
+    <div class="nav">
+        <a href="timer.html" class="active">⏱ 타이머</a>
+        <a href="records.html">📊 기록</a>
+    </div>
+
+    <h1>⏱ 타이머</h1>
+    <p class="subtitle" id="userEmail"></p>
+
+    <div class="timer-display">
+        <div class="timer-time" id="timerDisplay">50:00</div>
+        <div class="timer-label" id="timerLabel">공부 시간</div>
+    </div>
+
+    <div class="form-group" style="margin-top: 24px;">
+        <label>공부시간 (분)</label>
+        <input type="number" id="studyMinutes" value="50" min="1">
+    </div>
+    <div class="form-group">
+        <label>쉬는시간 (분)</label>
+        <input type="number" id="breakMinutes" value="10" min="1">
+    </div>
+
+    <div class="timer-buttons">
+        <button onclick="startTimer()" id="startBtn">시작</button>
+        <button class="secondary" onclick="pauseTimer()" id="pauseBtn" style="display:none;">일시정지</button>
+        <button class="danger" onclick="stopTimer()" id="stopBtn" style="display:none;">종료</button>
+    </div>
+
+    <div id="timerMessage" class="message"></div>
+</div>
+
+<script>
+    const API_URL = 'https://pokit.up.railway.app';
+
+    let timer = null;
+    let timeLeft = 0;
+    let isStudying = true;
+    let startTime = null;
+    let totalStudyMinutes = 0;
+    let isPaused = false;
+
+    // 로그인 확인
+    const token = localStorage.getItem('token');
+    const email = localStorage.getItem('email');
+    if (!token) window.location.href = 'index.html';
+    document.getElementById('userEmail').textContent = email;
+
+    function formatTime(seconds) {
+        const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+        const s = (seconds % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+    }
+
+    function showMessage(message, isSuccess) {
+        const el = document.getElementById('timerMessage');
+        el.textContent = message;
+        el.className = `message ${isSuccess ? 'success' : 'error'}`;
+        el.style.display = 'block';
+        setTimeout(() => el.style.display = 'none', 3000);
+    }
+
+    function startTimer() {
+        const studyMin = parseInt(document.getElementById('studyMinutes').value);
+        const breakMin = parseInt(document.getElementById('breakMinutes').value);
+
+        if (!studyMin || !breakMin) {
+            showMessage('공부시간과 쉬는시간을 입력해주세요', false);
+            return;
+        }
+
+        startTime = new Date();
+        isStudying = true;
+        timeLeft = studyMin * 60;
+        totalStudyMinutes = 0;
+
+        document.getElementById('startBtn').style.display = 'none';
+        document.getElementById('pauseBtn').style.display = 'block';
+        document.getElementById('stopBtn').style.display = 'block';
+        document.getElementById('studyMinutes').disabled = true;
+        document.getElementById('breakMinutes').disabled = true;
+
+        runTimer(studyMin, breakMin);
+    }
+
+    function runTimer(studyMin, breakMin) {
+        timer = setInterval(() => {
+            if (isPaused) return;
+
+            timeLeft--;
+            document.getElementById('timerDisplay').textContent = formatTime(timeLeft);
+
+            if (timeLeft <= 0) {
+                if (isStudying) {
+                    totalStudyMinutes += studyMin;
+                    isStudying = false;
+                    timeLeft = breakMin * 60;
+                    document.getElementById('timerLabel').textContent = '🎉 쉬는 시간';
+                    document.getElementById('timerDisplay').style.color = '#ff6b6b';
+                } else {
+                    isStudying = true;
+                    timeLeft = studyMin * 60;
+                    document.getElementById('timerLabel').textContent = '공부 시간';
+                    document.getElementById('timerDisplay').style.color = '#1a1a2e';
+                }
+            }
+        }, 1000);
+    }
+
+    function pauseTimer() {
+        isPaused = !isPaused;
+        document.getElementById('pauseBtn').textContent = isPaused ? '계속하기' : '일시정지';
+    }
+
+    async function stopTimer() {
+        clearInterval(timer);
+        timer = null;
+
+        const endTime = new Date();
+        const studyMin = parseInt(document.getElementById('studyMinutes').value);
+
+        if (isStudying) {
+            const elapsed = Math.floor((endTime - startTime) / 1000 / 60);
+            totalStudyMinutes += Math.min(elapsed, studyMin);
+        }
+
+        if (totalStudyMinutes <= 0) {
+            showMessage('공부 기록이 없어요 (최소 1분 이상)', false);
+            resetTimer();
+            return;
+        }
+
+        try {
+            // firebaseUid 추출 (토큰에서)
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            const firebaseUid = payload.uid;
+
+            const res = await fetch(`${API_URL}/api/timer/record`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    firebaseUid,
+                    studyMinutes: totalStudyMinutes,
+                    startTime: startTime.toISOString().slice(0, 19),
+                    endTime: endTime.toISOString().slice(0, 19)
+                })
+            });
+
+            if (res.ok) {
+                showMessage(`✅ ${totalStudyMinutes}분 공부 기록 저장됐어요!`, true);
+            } else {
+                showMessage('기록 저장 실패', false);
+            }
+        } catch (e) {
+            showMessage('서버 연결 실패', false);
+        }
+
+        resetTimer();
+    }
+
+    function resetTimer() {
+        const studyMin = parseInt(document.getElementById('studyMinutes').value);
+        document.getElementById('timerDisplay').textContent = formatTime(studyMin * 60);
+        document.getElementById('timerDisplay').style.color = '#1a1a2e';
+        document.getElementById('timerLabel').textContent = '공부 시간';
+        document.getElementById('startBtn').style.display = 'block';
+        document.getElementById('pauseBtn').style.display = 'none';
+        document.getElementById('stopBtn').style.display = 'none';
+        document.getElementById('studyMinutes').disabled = false;
+        document.getElementById('breakMinutes').disabled = false;
+        isPaused = false;
+    }
+
+    function logout() {
+        localStorage.removeItem('token');
+        localStorage.removeItem('email');
+        window.location.href = 'index.html';
+    }
+</script>
+</body>
+</html>

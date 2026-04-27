@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.time.DayOfWeek;
 
 @Service
 @RequiredArgsConstructor
@@ -52,5 +53,29 @@ public class TimerService {
         return todayRecords.stream()
                 .mapToInt(StudyRecord::getStudyMinutes)
                 .sum();
+    }
+
+    // 주간 총 공부시간 조회
+    public int getWeeklyStudyMinutes(String firebaseUid) {
+        LocalDateTime startOfWeek = LocalDateTime.now()
+                .with(java.time.DayOfWeek.MONDAY)
+                .toLocalDate()
+                .atStartOfDay();
+        LocalDateTime endOfWeek = startOfWeek.plusDays(7);
+
+        return studyRecordRepository.sumStudyMinutesByFirebaseUidAndStartTimeBetween(
+                firebaseUid, startOfWeek, endOfWeek);
+    }
+
+    // 월간 총 공부시간 조회
+    public int getMonthlyStudyMinutes(String firebaseUid) {
+        LocalDateTime startOfMonth = LocalDateTime.now()
+                .toLocalDate()
+                .withDayOfMonth(1)
+                .atStartOfDay();
+        LocalDateTime endOfMonth = startOfMonth.plusMonths(1);
+
+        return studyRecordRepository.sumStudyMinutesByFirebaseUidAndStartTimeBetween(
+                firebaseUid, startOfMonth, endOfMonth);
     }
 }

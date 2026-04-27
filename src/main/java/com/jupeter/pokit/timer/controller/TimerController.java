@@ -52,4 +52,28 @@ public class TimerController {
             return ResponseEntity.badRequest().build();
         }
     }
+
+    // 주간 총 공부시간 조회
+    @GetMapping("/weekly/{firebaseUid}")
+    public ResponseEntity<Integer> getWeeklyMinutes(
+            @PathVariable String firebaseUid) {
+        try {
+            int minutes = timerService.getWeeklyStudyMinutes(firebaseUid);
+            return ResponseEntity.ok(minutes);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    // 월간 총 공부시간 조회
+    @GetMapping("/monthly/{firebaseUid}")
+    public ResponseEntity<Integer> getMonthlyMinutes(
+            @PathVariable String firebaseUid) {
+        try {
+            int minutes = timerService.getMonthlyStudyMinutes(firebaseUid);
+            return ResponseEntity.ok(minutes);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
 }

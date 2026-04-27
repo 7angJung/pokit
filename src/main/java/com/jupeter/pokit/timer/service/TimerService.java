@@ -19,6 +19,11 @@ public class TimerService {
     // 공부기록 저장
     @Transactional
     public void saveStudyRecord(TimerResultRequest request) {
+
+        if (request.getStudyMinutes() <= 0) {
+            throw new IllegalArgumentException("공부시간은 1분 이상이어야 합니다");
+        }
+
         StudyRecord record = StudyRecord.builder()
                 .firebaseUid(request.getFirebaseUid())
                 .studyMinutes(request.getStudyMinutes())

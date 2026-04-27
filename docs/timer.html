@@ -41,7 +41,21 @@
     <div id="timerMessage" class="message"></div>
 </div>
 
-<script>
+<script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+    import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDntAar-u2RpU5qjVk1eqB8MRyql-TSHOI",
+        authDomain: "pokit-7e645.firebaseapp.com",
+        projectId: "pokit-7e645",
+        storageBucket: "pokit-7e645.firebasestorage.app",
+        messagingSenderId: "350973249979",
+        appId: "1:350973249979:web:2a27e47f7448e5a81b9c9e"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
     const API_URL = 'https://pokit.up.railway.app';
 
     let timer = null;
@@ -50,12 +64,17 @@
     let startTime = null;
     let totalStudyMinutes = 0;
     let isPaused = false;
+    let currentUser = null;
 
-    // 로그인 확인
-    const token = localStorage.getItem('token');
-    const email = localStorage.getItem('email');
-    if (!token) window.location.href = 'index.html';
-    document.getElementById('userEmail').textContent = email;
+    // 로그인 상태 확인
+    onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+            window.location.href = 'index.html';
+            return;
+        }
+        currentUser = user;
+        document.getElementById('userEmail').textContent = user.email;
+    });
 
     function formatTime(seconds) {
         const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -71,7 +90,7 @@
         setTimeout(() => el.style.display = 'none', 3000);
     }
 
-    function startTimer() {
+    window.startTimer = function() {
         const studyMin = parseInt(document.getElementById('studyMinutes').value);
         const breakMin = parseInt(document.getElementById('breakMinutes').value);
 
@@ -118,12 +137,12 @@
         }, 1000);
     }
 
-    function pauseTimer() {
+    window.pauseTimer = function() {
         isPaused = !isPaused;
         document.getElementById('pauseBtn').textContent = isPaused ? '계속하기' : '일시정지';
     }
 
-    async function stopTimer() {
+    window.stopTimer = async function() {
         clearInterval(timer);
         timer = null;
 
@@ -142,15 +161,15 @@
         }
 
         try {
-            // firebaseUid 추출 (토큰에서)
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            const firebaseUid = payload.uid;
+            // 최신 ID 토큰 가져오기
+            const idToken = await currentUser.getIdToken(true);
+            const firebaseUid = currentUser.uid;
 
             const res = await fetch(`${API_URL}/api/timer/record`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${idToken}`
                 },
                 body: JSON.stringify({
                     firebaseUid,
@@ -185,9 +204,9 @@
         isPaused = false;
     }
 
-    function logout() {
-        localStorage.removeItem('token');
-        localStorage.removeItem('email');
+    window.logout = async function() {
+        await signOut(auth);
+        localStorage.clear();
         window.location.href = 'index.html';
     }
 </script>

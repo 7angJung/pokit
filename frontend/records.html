@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokit - 공부기록</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="container">
+    <button class="logout-btn" onclick="logout()">로그아웃</button>
+
+    <div class="nav">
+        <a href="timer.html">⏱ 타이머</a>
+        <a href="records.html" class="active">📊 기록</a>
+    </div>
+
+    <h1>📊 공부 기록</h1>
+    <p class="subtitle" id="userEmail"></p>
+
+    <!-- 통계 카드 -->
+    <div class="stat-card">
+        <div>
+            <div class="stat-label">오늘 공부시간</div>
+        </div>
+        <div class="stat-value" id="todayMinutes">-</div>
+    </div>
+    <div class="stat-card">
+        <div>
+            <div class="stat-label">이번 주 공부시간</div>
+        </div>
+        <div class="stat-value" id="weeklyMinutes">-</div>
+    </div>
+    <div class="stat-card">
+        <div>
+            <div class="stat-label">이번 달 공부시간</div>
+        </div>
+        <div class="stat-value" id="monthlyMinutes">-</div>
+    </div>
+
+    <div class="divider">전체 기록</div>
+
+    <!-- 전체 기록 목록 -->
+    <div id="recordsList"></div>
+    <div id="recordsMessage" class="message"></div>
+</div>
+
+<script>
+    const API_URL = 'https://pokit.up.railway.app';
+
+    const token = localStorage.getItem('token');
+    const email = localStorage.getItem('email');
+    if (!token) window.location.href = 'index.html';
+    document.getElementById('userEmail').textContent = email;
+
+    function formatMinutes(minutes) {
+        if (minutes >= 60) {
+            const h = Math.floor(minutes / 60);
+            const m = minutes % 60;
+            return m > 0 ? `${h}시간 ${m}분` : `${h}시간`;
+        }
+        return `${minutes}분`;
+    }
+
+    function formatDate(dateStr) {
+        const date = new Date(dateStr);
+        return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+    }
+
+    async function loadData() {
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            const firebaseUid = payload.uid;
+
+            const headers = { 'Authorization': `Bearer ${token}` };
+
+            // 오늘/주간/월간 통계
+            const [todayRes, weeklyRes, monthlyRes, recordsRes] = await Promise.all([
+                fetch(`${API_URL}/api/timer/today/${firebaseUid}`, { headers }),
+                fetch(`${API_URL}/api/timer/weekly/${firebaseUid}`, { headers }),
+                fetch(`${API_URL}/api/timer/monthly/${firebaseUid}`, { headers }),
+                fetch(`${API_URL}/api/timer/records/${firebaseUid}`, { headers })
+            ]);
+
+            const today = await todayRes.json();
+            const weekly = await weeklyRes.json();
+            const monthly = await monthlyRes.json();
+            const records = await recordsRes.json();
+
+            document.getElementById('todayMinutes').textContent = formatMinutes(today);
+            document.getElementById('weeklyMinutes').textContent = formatMinutes(weekly);
+            document.getElementById('monthlyMinutes').textContent = formatMinutes(monthly);
+
+            const list = document.getElementById('recordsList');
+            if (records.length === 0) {
+                list.innerHTML = '<p style="text-align:center; color:#aaa; padding:20px;">기록이 없어요</p>';
+            } else {
+                list.innerHTML = records.map(r => `
+                        <div class="record-item">
+                            <div>
+                                <div style="font-weight:600;">${formatMinutes(r.studyMinutes)} 공부</div>
+                                <div class="record-date">${formatDate(r.startTime)} ~ ${formatDate(r.endTime)}</div>
+                            </div>
+                            <div style="font-size:24px;">📖</div>
+                        </div>
+                    `).join('');
+            }
+
+        } catch (e) {
+            const el = document.getElementById('recordsMessage');
+            el.textContent = '데이터 로딩 실패';
+            el.className = 'message error';
+            el.style.display = 'block';
+        }
+    }
+
+    function logout() {
+        localStorage.removeItem('token');
+        localStorage.removeItem('email');
+        window.location.href = 'index.html';
+    }
+
+    loadData();
+</script>
+</body>
+</html>

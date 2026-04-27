@@ -134,4 +134,72 @@ class TimerServiceTest {
         // then
         assertTrue(records.isEmpty());
     }
+
+    @Test
+    @DisplayName("주간 총 공부시간 합산 성공")
+    void getWeeklyStudyMinutes_success() {
+
+        // given
+        String firebaseUid = "firebase-uid-123";
+        when(studyRecordRepository.sumStudyMinutesByFirebaseUidAndStartTimeBetween(
+                eq(firebaseUid), any(LocalDateTime.class), any(LocalDateTime.class)))
+                .thenReturn(150);
+
+        // when
+        int totalMinutes = timerService.getWeeklyStudyMinutes(firebaseUid);
+
+        // then
+        assertEquals(150, totalMinutes);
+    }
+
+    @Test
+    @DisplayName("월간 총 공부시간 합산 성공")
+    void getMonthlyStudyMinutes_success() {
+
+        // given
+        String firebaseUid = "firebase-uid-123";
+        when(studyRecordRepository.sumStudyMinutesByFirebaseUidAndStartTimeBetween(
+                eq(firebaseUid), any(LocalDateTime.class), any(LocalDateTime.class)))
+                .thenReturn(600);
+
+        // when
+        int totalMinutes = timerService.getMonthlyStudyMinutes(firebaseUid);
+
+        // then
+        assertEquals(600, totalMinutes);
+    }
+
+    @Test
+    @DisplayName("주간 공부기록 없을 때 0 반환")
+    void getWeeklyStudyMinutes_empty() {
+
+        // given
+        String firebaseUid = "firebase-uid-123";
+        when(studyRecordRepository.sumStudyMinutesByFirebaseUidAndStartTimeBetween(
+                eq(firebaseUid), any(LocalDateTime.class), any(LocalDateTime.class)))
+                .thenReturn(0);
+
+        // when
+        int totalMinutes = timerService.getWeeklyStudyMinutes(firebaseUid);
+
+        // then
+        assertEquals(0, totalMinutes);
+    }
+
+    @Test
+    @DisplayName("월간 공부기록 없을 때 0 반환")
+    void getMonthlyStudyMinutes_empty() {
+
+        // given
+        String firebaseUid = "firebase-uid-123";
+        when(studyRecordRepository.sumStudyMinutesByFirebaseUidAndStartTimeBetween(
+                eq(firebaseUid), any(LocalDateTime.class), any(LocalDateTime.class)))
+                .thenReturn(0);
+
+        // when
+        int totalMinutes = timerService.getMonthlyStudyMinutes(firebaseUid);
+
+        // then
+        assertEquals(0, totalMinutes);
+    }
 }

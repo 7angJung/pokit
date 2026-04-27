@@ -7,6 +7,10 @@
 Pokit은 공부 시간을 타이머로 측정하고 기록하는 백엔드 서비스입니다.
 쉬는 시간을 제외한 순수 공부 시간만 기록하며, 오늘/주간/월간 통계를 제공합니다.
 
+## 🚀 배포 서버
+
+https://pokit.up.railway.app
+
 ## 🛠 기술 스택
 
 | 분류 | 기술 |
@@ -38,8 +42,8 @@ com.jupeter.pokit
 ├── common
 │   └── filter       # FirebaseTokenFilter
 └── config
-├── FirebaseConfig    # Firebase 초기화
-└── SecurityConfig    # Spring Security 설정
+    ├── FirebaseConfig    # Firebase 초기화
+    └── SecurityConfig    # Spring Security 설정
 ```
 
 ## 🔑 API 명세
@@ -69,7 +73,9 @@ com.jupeter.pokit
 ```
 
 **로그인 응답** (Firebase 커스텀 토큰)
+```
 eyJhbGciOiJSUzI1NiJ9...
+```
 
 ---
 
@@ -138,5 +144,5 @@ eyJhbGciOiJSUzI1NiJ9...
 ```
 
 4. H2 콘솔 접속: `http://localhost:8080/h2-console`
-    - JDBC URL: `jdbc:h2:mem:pokitdb`
-    - Username: `sa`
+   - JDBC URL: `jdbc:h2:mem:pokitdb`
+   - Username: `sa`

@@ -5,6 +5,7 @@ spring:
 app:
   firebase:
     credentials: classpath:firebase-adminsdk.json
+    credentials-json: ${FIREBASE_CREDENTIALS_JSON:}
 
 ---
 spring:
